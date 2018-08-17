@@ -19,20 +19,16 @@ func main() {
 	quiet := flag.Bool("q", false, "Be quiet")
 	width := flag.Int("w", 80, "Width of output")
 
+	response := flag.String("r", "", "String to respond with")
 	filename := flag.String("f", "", "File to read response from for mock server")
 	proxyTarget := flag.String("x", "", "Base url for proxy server")
 	echo := flag.Bool("e", false, "Run echo server")
 
 	flag.Parse()
-	arg := flag.Arg(0)
 
-	mockServer := *filename != "" || arg != ""
+	mockServer := *filename != "" || *response != ""
 	proxyServer := *proxyTarget != ""
 	echoServer := *echo
-
-	if (mockServer && proxyServer) || (mockServer && echoServer) || (proxyServer && echoServer) {
-		golog.Fatal("Only one type of server can be used at a time (between mock-, proxy-, and echo-servers.")
-	}
 
 	var handler http.HandlerFunc
 	var serverType string
@@ -40,6 +36,34 @@ func main() {
 	case proxyServer:
 		serverType = "Proxy"
 		handler = proxy.MustNewProxy(*proxyTarget, !*quiet, *width).ServeHTTP
+
+	case mockServer:
+		serverType = "Mock"
+
+		if *response != "" && *filename != "" {
+			golog.Fatal("Too many responses provided")
+		}
+
+		var res []byte
+		if *response != "" {
+			res = []byte(*response)
+		}
+
+		if *filename != "" {
+			data, err := ioutil.ReadFile(*filename)
+			if err != nil {
+				golog.Fatal(err)
+			}
+			res = data
+		}
+
+		handler = func(w http.ResponseWriter, _ *http.Request) {
+			w.Write(res)
+		}
+		if !*quiet {
+			handler = log.Middleware(*width, handler)
+		}
+
 	case echoServer:
 		serverType = "Echo"
 
@@ -51,36 +75,9 @@ func main() {
 		if !*quiet {
 			handler = log.Middleware(*width, handler)
 		}
+
 	default:
-		serverType = "Mock"
-
-		if arg == "" && *filename == "" {
-			golog.Fatal("No response provided")
-		}
-
-		if arg != "" && *filename != "" {
-			golog.Fatal("Too many responses provided")
-		}
-
-		var response []byte
-		if arg != "" {
-			response = []byte(arg)
-		}
-
-		if *filename != "" {
-			data, err := ioutil.ReadFile(*filename)
-			if err != nil {
-				golog.Fatal(err)
-			}
-			response = data
-		}
-
-		handler = func(w http.ResponseWriter, _ *http.Request) {
-			w.Write(response)
-		}
-		if !*quiet {
-			handler = log.Middleware(*width, handler)
-		}
+		golog.Fatal("For some reason, I don't know what to do")
 	}
 
 	http.HandleFunc("/", handler)
