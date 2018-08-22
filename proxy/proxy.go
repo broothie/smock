@@ -8,7 +8,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"path"
-	"strings"
 	"time"
 
 	"github.com/andydennisonbooth/smock/log"
@@ -62,13 +61,12 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if p.log {
 		resDump, _ := httputil.DumpResponse(response, true)
 		go func(reqDump, resDump string, t time.Time) {
-			reqRes := log.Entrify([][]string{
-				strings.Split(reqDump, "\r\n"),
-				strings.Split(resDump, "\r\n"),
+			reqRes := log.Entrify([]string{
+				fmt.Sprintf("Request/response at %v", t),
+				reqDump,
+				resDump,
 			}, p.width)
-			reqRes = append([]string{fmt.Sprintf("Request/response at %v", t)}, reqRes...)
-			reqRes = append(reqRes, "\n")
-			fmt.Println(strings.Join(reqRes, "\n"))
+			fmt.Println(reqRes)
 		}(string(reqDump), string(resDump), requestTime)
 	}
 

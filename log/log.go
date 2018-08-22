@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
+
+var newlineRegexp = regexp.MustCompile(`\r\n`)
 
 type Logger struct {
 	Width int
@@ -17,10 +20,7 @@ func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestTime := time.Now()
 	dump, _ := httputil.DumpRequest(r, true)
 	go func(dump string, t time.Time) {
-		lines := Entrify([][]string{strings.Split(dump, "\r\n")}, l.Width)
-		lines = append([]string{fmt.Sprintf("Request at %v", t)}, lines...)
-		lines = append(lines, "\n")
-		fmt.Println(strings.Join(lines, "\n"))
+		fmt.Println(l.Entrify(fmt.Sprintf("Request at %v", t), dump))
 	}(string(dump), requestTime)
 }
 
@@ -36,62 +36,73 @@ func (l *Logger) Wrap(handler http.Handler) http.Handler {
 	return l
 }
 
-func Entrify(entries [][]string, width int) []string {
-	var out []string
-
-	divider := BuildDivider(width)
-	out = append(out, divider)
-
-	for _, entry := range entries {
-		for _, bordered := range OutsideBorderify(entry, width) {
-			out = append(out, bordered)
-		}
-		out = append(out, divider)
-	}
-
-	return out
+func (l *Logger) Entrify(entries ...string) string {
+	return Entrify(entries, l.Width)
 }
 
-func OutsideBorderify(in []string, width int) []string {
-	var out []string
-	lBar := "| %-"
-	rBar := "s |"
+func Entrify(entries []string, width int) string {
+	var builder strings.Builder
 
-	for _, line := range in {
-		if len(line) == 0 {
-			out = append(out, fmt.Sprintf(lBar+strconv.Itoa(width)+rBar, ""))
-		}
-
-		for j := 0; j < len(line); j += width {
-			k := j + width
-
-			left := lBar
-			if j != 0 {
-				left = "  %-"
-			}
-
-			right := rBar
-			if width+j < len(line) {
-				right = "s"
-			} else {
-				k = len(line)
-			}
-
-			out = append(out, fmt.Sprintf(
-				left+strconv.Itoa(width)+right,
-				line[j:k],
-			))
-		}
-	}
-	return out
-}
-
-func BuildDivider(width int) string {
+	// Build divider
 	var dividerBuilder strings.Builder
-	dividerBuilder.WriteString("+-")
-	for i := 0; i < width; i++ {
+	dividerBuilder.WriteByte('+')
+	for i := 0; i < width+2; i++ {
 		dividerBuilder.WriteRune('-')
 	}
-	dividerBuilder.WriteString("-+")
-	return dividerBuilder.String()
+	dividerBuilder.WriteString("+\n")
+	divider := dividerBuilder.String()
+
+	builder.WriteString(divider)
+	for _, entry := range entries {
+		builder.WriteString(AddSideBorders(entry, width))
+		builder.WriteString(divider)
+	}
+
+	return builder.String()
+}
+
+const (
+	leftSideBorder  = "| %-"
+	rightSideBorder = "s |"
+
+	leftSideBorderless  = "  %-"
+	rightSideBorderless = "s"
+)
+
+func AddSideBorders(in string, width int) string {
+	var builder strings.Builder
+
+	for _, line := range newlineRegexp.Split(in, -1) {
+		if len(line) == 0 {
+			builder.WriteString(fmt.Sprintf(
+				leftSideBorder+strconv.Itoa(width)+rightSideBorder,
+				"",
+			))
+			builder.WriteRune('\n')
+		}
+
+		for lIdx := 0; lIdx < len(line); lIdx += width {
+			rIdx := lIdx + width
+			leftSide := leftSideBorder
+			rightSide := rightSideBorder
+
+			if lIdx != 0 {
+				leftSide = leftSideBorderless
+			}
+
+			if rIdx < len(line) {
+				rightSide = rightSideBorderless
+			} else {
+				rIdx = len(line)
+			}
+
+			builder.WriteString(fmt.Sprintf(
+				leftSide+strconv.Itoa(width)+rightSide,
+				line[lIdx:rIdx],
+			))
+			builder.WriteRune('\n')
+		}
+	}
+
+	return builder.String()
 }
