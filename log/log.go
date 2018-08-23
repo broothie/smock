@@ -7,40 +7,14 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 )
 
-var newlineRegexp = regexp.MustCompile(`\r\n`)
+const DefaultWidth = 80
 
-type Logger struct {
-	Width int
-}
+var tabRegexp = regexp.MustCompile(`\t`)
+var newlineRegexp = regexp.MustCompile(`\r?\n`)
 
-func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	requestTime := time.Now()
-	dump, _ := httputil.DumpRequest(r, true)
-	go func(dump string, t time.Time) {
-		fmt.Println(l.Entrify(fmt.Sprintf("Request at %v", t), dump))
-	}(string(dump), requestTime)
-}
-
-func (l *Logger) Middleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		l.ServeHTTP(w, r)
-		next(w, r)
-	}
-}
-
-func (l *Logger) Wrap(handler http.Handler) http.Handler {
-	l.Middleware(handler.ServeHTTP)
-	return l
-}
-
-func (l *Logger) Entrify(entries ...string) string {
-	return Entrify(entries, l.Width)
-}
-
-func Entrify(entries []string, width int) string {
+func Entrify(width int, entries ...string) string {
 	var builder strings.Builder
 
 	// Build divider
@@ -54,7 +28,7 @@ func Entrify(entries []string, width int) string {
 
 	builder.WriteString(divider)
 	for _, entry := range entries {
-		builder.WriteString(AddSideBorders(entry, width))
+		builder.WriteString(Borderify(entry, width))
 		builder.WriteString(divider)
 	}
 
@@ -69,8 +43,10 @@ const (
 	rightSideBorderless = "s"
 )
 
-func AddSideBorders(in string, width int) string {
+func Borderify(in string, width int) string {
 	var builder strings.Builder
+
+	in = tabRegexp.ReplaceAllString(in, "  ")
 
 	for _, line := range newlineRegexp.Split(in, -1) {
 		if len(line) == 0 {
@@ -105,4 +81,18 @@ func AddSideBorders(in string, width int) string {
 	}
 
 	return builder.String()
+}
+
+func CleanDump(r *http.Request) (string, error) {
+	dump, err := httputil.DumpRequest(r, true)
+	if err != nil {
+		return "", err
+	}
+
+	contentLength := r.Header.Get("Content-Length")
+	if contentLength == "" {
+		return string(dump[:len(dump)-4]), nil
+	}
+
+	return string(dump), nil
 }

@@ -3,39 +3,43 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	golog "log"
 	"net/http"
-	"net/http/httputil"
 
+	"github.com/andydennisonbooth/smock/echo"
 	"github.com/andydennisonbooth/smock/log"
+	"github.com/andydennisonbooth/smock/mock"
 	"github.com/andydennisonbooth/smock/proxy"
 )
 
-const widthOffset = 2
-
 func main() {
 	port := flag.String("p", "8889", "Port to run mock server on")
-	quiet := flag.Bool("q", false, "Be quiet")
-	width := flag.Int("w", 80, "Width of output")
+	width := flag.Int("w", log.DefaultWidth, "Width of output")
 
+	echoFlag := flag.Bool("e", false, "Run echo server")
 	response := flag.String("r", "", "String to respond with")
 	filename := flag.String("f", "", "File to read response from for mock server")
 	proxyTarget := flag.String("x", "", "Base url for proxy server")
-	echo := flag.Bool("e", false, "Run echo server")
 
 	flag.Parse()
 
 	mockServer := *filename != "" || *response != ""
 	proxyServer := *proxyTarget != ""
-	echoServer := *echo
+	echoServer := *echoFlag
 
-	var handler http.HandlerFunc
+	var handler http.Handler
 	var serverType string
 	switch {
 	case proxyServer:
 		serverType = "Proxy"
-		handler = proxy.MustNewProxy(*proxyTarget, !*quiet, *width).ServeHTTP
+
+		p, err := proxy.New(*proxyTarget, nil)
+		if err != nil {
+			golog.Fatal("Unable to make proxy server", err)
+		}
+
+		p.Width = *width
+		handler = p
 
 	case mockServer:
 		serverType = "Mock"
@@ -44,43 +48,29 @@ func main() {
 			golog.Fatal("Too many responses provided")
 		}
 
-		var res []byte
+		var m *mock.Mock
 		if *response != "" {
-			res = []byte(*response)
-		}
-
-		if *filename != "" {
-			data, err := ioutil.ReadFile(*filename)
+			m = mock.NewFromString(*response)
+		} else if *filename != "" {
+			var err error
+			m, err = mock.NewFromFile(*filename)
 			if err != nil {
-				golog.Fatal(err)
+				golog.Fatal("Unable to read file", err)
 			}
-			res = data
 		}
-
-		handler = func(w http.ResponseWriter, _ *http.Request) {
-			w.Write(res)
-		}
-		if !*quiet {
-			handler = log.Middleware(*width, handler)
-		}
+		m.Width = *width
+		handler = m
 
 	case echoServer:
+		fallthrough
+	default:
 		serverType = "Echo"
 
-		handler = func(w http.ResponseWriter, r *http.Request) {
-			dump, _ := httputil.DumpRequest(r, r.Method != http.MethodGet)
-			w.Write(dump)
-		}
-
-		if !*quiet {
-			handler = log.Middleware(*width, handler)
-		}
-
-	default:
-		golog.Fatal("For some reason, I don't know what to do")
+		e := echo.New()
+		e.Width = *width
+		handler = e
 	}
 
-	http.HandleFunc("/", handler)
 	fmt.Printf("%s server running @ localhost:%s\n", serverType, *port)
-	golog.Fatal(http.ListenAndServe(":"+*port, nil))
+	golog.Fatal(http.ListenAndServe(":"+*port, handler))
 }
