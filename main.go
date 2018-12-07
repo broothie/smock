@@ -15,13 +15,13 @@ import (
 )
 
 func main() {
-	port := flag.Int("p", 8889, "Port to run server on")
-	width := flag.Int("w", log.DefaultWidth, "Width of output")
+	port := flag.Int("p", 8889, "port to run server on")
+	width := flag.Int("w", log.DefaultWidth, "width of output")
 
-	echoFlag := flag.Bool("e", false, "Run echo server")
-	response := flag.String("r", "", "Mock response")
-	filename := flag.String("f", "", "Filename of file containing mock response")
-	proxyTarget := flag.String("x", "", "Base url for proxy server")
+	echoFlag := flag.Bool("e", false, "run echo server")
+	response := flag.String("r", "", "mock response")
+	filename := flag.String("f", "", "filename of file containing mock response")
+	proxyTarget := flag.String("x", "", "base url for proxy server")
 
 	flag.Parse()
 
