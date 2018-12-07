@@ -5,6 +5,8 @@ import (
 	"fmt"
 	golog "log"
 	"net/http"
+	"os"
+	"strconv"
 
 	"github.com/andydennisonbooth/smock/echo"
 	"github.com/andydennisonbooth/smock/log"
@@ -13,12 +15,12 @@ import (
 )
 
 func main() {
-	port := flag.String("p", "8889", "Port to run mock server on")
+	port := flag.Int("p", 8889, "Port to run server on")
 	width := flag.Int("w", log.DefaultWidth, "Width of output")
 
 	echoFlag := flag.Bool("e", false, "Run echo server")
-	response := flag.String("r", "", "String to respond with")
-	filename := flag.String("f", "", "File to read response from for mock server")
+	response := flag.String("r", "", "Mock response")
+	filename := flag.String("f", "", "Filename of file containing mock response")
 	proxyTarget := flag.String("x", "", "Base url for proxy server")
 
 	flag.Parse()
@@ -62,15 +64,17 @@ func main() {
 		handler = m
 
 	case echoServer:
-		fallthrough
-	default:
 		serverType = "Echo"
 
 		e := echo.New()
 		e.Width = *width
 		handler = e
+
+	default:
+		flag.PrintDefaults()
+		os.Exit(0)
 	}
 
-	fmt.Printf("%s server running @ localhost:%s\n", serverType, *port)
-	golog.Fatal(http.ListenAndServe(":"+*port, handler))
+	fmt.Printf("%s server running @ localhost:%d\n", serverType, *port)
+	golog.Fatal(http.ListenAndServe(":"+strconv.Itoa(*port), handler))
 }
