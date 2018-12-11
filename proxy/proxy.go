@@ -46,16 +46,6 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}(entries)
 	}()
 
-	requestDump, err := log.CleanDump(r)
-	if err != nil {
-		message := "Unable to dump original request"
-		entries = append(entries, message, err.Error())
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, message, err.Error())
-		return
-	}
-	entries = append(entries, requestDump)
-
 	// Copy request
 	requestToMake, err := copyRequest(r)
 	if err != nil {
@@ -70,6 +60,17 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestToMake.Host = p.TargetURL.Host
 	requestToMake.URL, _ = url.Parse(p.TargetURL.String())
 	requestToMake.URL.Path = path.Join(p.TargetURL.Path, r.URL.Path)
+
+	// Dump request
+	requestDump, err := log.CleanDump(requestToMake)
+	if err != nil {
+		message := "Unable to dump request"
+		entries = append(entries, message, err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, message, err.Error())
+		return
+	}
+	entries = append(entries, requestDump)
 
 	// Make request to proxied server
 	response, err := p.Client.Do(requestToMake)
