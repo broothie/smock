@@ -19,9 +19,9 @@ func main() {
 	width := flag.Int("w", log.DefaultWidth, "width of output")
 
 	echoFlag := flag.Bool("e", false, "run echo server")
-	response := flag.String("r", "", "mock response")
-	filename := flag.String("f", "", "filename of file containing mock response")
-	proxyTarget := flag.String("x", "", "base url for proxy server")
+	response := flag.String("r", "", "run mock server with provided response")
+	filename := flag.String("f", "", "run mock server using file contents as response")
+	proxyTarget := flag.String("x", "", "run proxy server pointed at provided uri")
 
 	flag.Parse()
 
@@ -30,24 +30,24 @@ func main() {
 	echoServer := *echoFlag
 
 	var handler http.Handler
-	var serverType string
+	var serverDetails string
 	switch {
 	case proxyServer:
-		serverType = "Proxy"
+		serverDetails = fmt.Sprintf("Reverse proxy to %q", *proxyTarget)
 
 		p, err := proxy.New(*proxyTarget, nil)
 		if err != nil {
-			golog.Fatal("Unable to make proxy server", err)
+			golog.Fatal("unable to make proxy server", err)
 		}
 
 		p.Width = *width
 		handler = p
 
 	case mockServer:
-		serverType = "Mock"
+		serverDetails = "Mock server"
 
 		if *response != "" && *filename != "" {
-			golog.Fatal("Too many responses provided")
+			golog.Fatal("too many responses provided")
 		}
 
 		var m *mock.Mock
@@ -57,14 +57,14 @@ func main() {
 			var err error
 			m, err = mock.NewFromFile(*filename)
 			if err != nil {
-				golog.Fatal("Unable to read file", err)
+				golog.Fatal("unable to read file", err)
 			}
 		}
 		m.Width = *width
 		handler = m
 
 	case echoServer:
-		serverType = "Echo"
+		serverDetails = "Echo server"
 
 		e := echo.New()
 		e.Width = *width
@@ -75,6 +75,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	fmt.Printf("%s server running @ localhost:%d\n", serverType, *port)
+	fmt.Printf("%s running @ localhost:%d\n", serverDetails, *port)
 	golog.Fatal(http.ListenAndServe(":"+strconv.Itoa(*port), handler))
 }

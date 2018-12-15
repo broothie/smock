@@ -60,6 +60,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestToMake.Host = p.TargetURL.Host
 	requestToMake.URL, _ = url.Parse(p.TargetURL.String())
 	requestToMake.URL.Path = path.Join(p.TargetURL.Path, r.URL.Path)
+	requestToMake.URL.RawQuery = r.URL.RawQuery
 
 	// Dump request
 	requestDump, err := log.CleanDump(requestToMake)

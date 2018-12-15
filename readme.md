@@ -10,15 +10,15 @@ go get -u github.com/andydennisonbooth/smock
 ## Usage
 ```
 $ smock
-  -e	Run echo server
+  -e	run echo server
   -f string
-    	Filename of file containing mock response
+    	run mock server using file contents as response
   -p int
-    	Port to run server on (default 8889)
+    	port to run server on (default 8889)
   -r string
-    	Mock response
+    	run mock server with provided response
   -w int
-    	Width of output (default 80)
+    	width of output (default 80)
   -x string
-    	Base url for proxy server
+    	run proxy server pointed at provided uri
 ```
