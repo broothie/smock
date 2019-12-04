@@ -23,4 +23,6 @@ changelog:
   sort: asc
 
 brews:
-  -
+  - github:
+      owner: broothie
+      name: homebrew-smock
