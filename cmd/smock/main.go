@@ -13,9 +13,13 @@ import (
 )
 
 var (
+	version, date string
+
 	port   = kingpin.Flag("port", "port to run smock on").Short('p').Default("9090").Int()
 	uiPort = kingpin.Flag("uiport", "port to run ui on").Short('u').Default("9091").Int()
 	skipUI = kingpin.Flag("no-ui", "disable ui").Default("false").Bool()
+
+	_ = kingpin.Command("version", "print smock version")
 
 	// smock [mock]
 	mock        = kingpin.Command("mock", "mock response based on command args").Default()
@@ -47,6 +51,9 @@ func main() {
 	case "proxy":
 		intro = fmt.Sprintf("proxying http://localhost:%d → %s", *port, *proxyTarget)
 		handler = handlers.Proxy(*proxyTarget)
+	case "version":
+		fmt.Printf("fileserver v%s; built %s\n", version, date)
+		os.Exit(0)
 	default:
 		log.Println("invalid command")
 		os.Exit(1)
