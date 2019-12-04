@@ -15,17 +15,17 @@ import (
 var (
 	version, date string
 
-	port   = kingpin.Flag("port", "port to run smock on").Short('p').Default("9090").Int()
+	port   = kingpin.Flag("port", "port to run server mock on").Short('p').Default("9090").Int()
 	uiPort = kingpin.Flag("uiport", "port to run ui on").Short('u').Default("9091").Int()
 	skipUI = kingpin.Flag("no-ui", "disable ui").Default("false").Bool()
 
 	_ = kingpin.Command("version", "print smock version")
 
 	// smock [mock]
-	mock        = kingpin.Command("mock", "mock response based on command args").Default()
-	mockCode    = mock.Flag("code", "status code").Short('c').Default("200").Int()
-	mockHeaders = mock.Flag("header", "headers").Short('h').StringMap()
-	mockBody    = mock.Flag("body", "body").Short('b').Default("").String()
+	mock        = kingpin.Command("mock", "mock response").Default()
+	mockCode    = mock.Flag("code", "response status code").Short('c').Default("200").Int()
+	mockHeaders = mock.Flag("header", "response headers").Short('h').StringMap()
+	mockBody    = mock.Flag("body", "response body").Short('b').Default("").String()
 
 	// smock file
 	file     = kingpin.Command("file", "mock response from file")
@@ -52,7 +52,7 @@ func main() {
 		intro = fmt.Sprintf("proxying http://localhost:%d → %s", *port, *proxyTarget)
 		handler = handlers.Proxy(*proxyTarget)
 	case "version":
-		fmt.Printf("fileserver v%s; built %s\n", version, date)
+		fmt.Printf("smock v%s; built %s\n", version, date)
 		os.Exit(0)
 	default:
 		log.Println("invalid command")
