@@ -23,6 +23,8 @@ changelog:
   sort: asc
 
 brews:
-  - github:
+  - homepage: 'https://github.com/broothie/smock'
+    description: 'smock - a server mock'
+    github:
       owner: broothie
       name: homebrew-smock
