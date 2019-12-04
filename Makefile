@@ -1,6 +1,9 @@
 
 all: clean tag tag.push release
 
+tag.latest:
+	git tag | cat | sort | tail -n 5
+
 tag:
 	git tag -a $(version)
 
