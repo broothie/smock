@@ -2,7 +2,7 @@
 all: tag tag.push release
 
 tag:
-	git tag -a $(version) -m $(message)
+	git tag -a $(version)
 
 tag.push:
 	git push origin $(version)
