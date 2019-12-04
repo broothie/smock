@@ -25,4 +25,4 @@ changelog:
 brews:
   - github:
       owner: broothie
-      name: smock
+      name: homebrew-smock

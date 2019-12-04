@@ -1,5 +1,5 @@
 
-all: tag tag.push release
+all: clean tag tag.push release
 
 tag:
 	git tag -a $(version)
@@ -9,3 +9,6 @@ tag.push:
 
 release:
 	source .env && goreleaser --rm-dist
+
+clean:
+	rm -rf gin-bin dist
