@@ -2,38 +2,33 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
 )
 
-func File(logger *log.Logger, filename string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		contents, err := ioutil.ReadFile(filename)
-		if err != nil {
-			logger.Println(err)
-			return
-		}
+type proxyKey struct{}
 
-		Mock(logger, http.StatusOK, http.Header{}, contents).ServeHTTP(w, r)
-	}
+var proxyk proxyKey
+
+func ContextWithProxyKey(parent context.Context, reqRes *RequestResponse) context.Context {
+	return context.WithValue(parent, proxyk, reqRes)
 }
 
-func Mock(logger *log.Logger, statusCode int, headers http.Header, body []byte) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		for key, values := range headers {
-			for _, value := range values {
-				w.Header().Add(key, value)
-			}
-		}
-
-		w.WriteHeader(statusCode)
-		if _, err := w.Write(body); err != nil {
-			logger.Println(err)
-		}
+func GetReqResFromContext(ctx context.Context) *RequestResponse {
+	reqRes, ok := ctx.Value(proxyk).(*RequestResponse)
+	if !ok {
+		return nil
 	}
+
+	return reqRes
+}
+
+type RequestResponse struct {
+	Request  *http.Request
+	Response *http.Response
 }
 
 func Proxy(target *url.URL) http.Handler {
@@ -57,6 +52,12 @@ func Proxy(target *url.URL) http.Handler {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		go func() {
+			reqRes := GetReqResFromContext(r.Context())
+			reqRes.Request = targetReq
+			reqRes.Response = targetRes
+		}()
 	})
 }
 

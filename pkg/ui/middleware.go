@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/broothie/smock/pkg/handlers"
 	"github.com/broothie/smock/pkg/interceptor"
 	"github.com/broothie/smock/pkg/reqlogger"
 )
@@ -27,21 +28,25 @@ func (ui *UI) Middleware(next http.Handler) http.Handler {
 		interceptor := interceptor.New(w)
 		id := randID(6)
 		start := time.Now()
-		next.ServeHTTP(interceptor, r)
+		next.ServeHTTP(interceptor, r.WithContext(handlers.ContextWithProxyKey(r.Context(), new(handlers.RequestResponse))))
 		end := time.Now()
 
 		// Record entry and log
 		go func() {
 			r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-
 			entry, err := NewEntry(id, start, end, r, interceptor)
 			if err != nil {
 				ui.Logger.Printf("failed to recorder entry for id=%s", id)
 				return
 			}
 
-			ui.Entries[id] = entry
+			reqRes := handlers.GetReqResFromContext(r.Context())
+			if reqRes != nil {
+				entry.TargetRequest = Request{}
+				entry.TargetResponse = Response{}
+			}
 
+			ui.Entries[id] = entry
 			std := reqlogger.FormatFromReqRes(r, interceptor.ToRecorder(), end.Sub(start))
 			ui.Logger.Printf("%s | http://localhost:%d#%s", std, ui.Port, id)
 		}()

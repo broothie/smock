@@ -11,13 +11,15 @@ import (
 )
 
 type Entry struct {
-	ID       string        `json:"id"`
-	Line     string        `json:"line"`
-	Start    time.Time     `json:"start"`
-	End      time.Time     `json:"end"`
-	Elapsed  time.Duration `json:"elapsed"`
-	Request  Request       `json:"request"`
-	Response Response      `json:"response"`
+	ID             string        `json:"id"`
+	Line           string        `json:"line"`
+	Start          time.Time     `json:"start"`
+	End            time.Time     `json:"end"`
+	Elapsed        time.Duration `json:"elapsed"`
+	Request        Request       `json:"request"`
+	Response       Response      `json:"response"`
+	TargetRequest  Request       `json:"target_request"`
+	TargetResponse Response      `json:"target_response"`
 }
 
 type Request struct {
