@@ -24,7 +24,6 @@ Flags:
 Commands:
   help [<command>...]
     Show help.
-```
 
   version
     print smock version
