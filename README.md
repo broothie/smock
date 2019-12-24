@@ -5,6 +5,7 @@
 ## Installation
 
 ```bash
+$ brew tap broothie/smock
 $ brew install smock
 ```
 
