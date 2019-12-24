@@ -1,16 +1,13 @@
 # `smock`
-
-`smock` - a server mock
+A server mock
 
 ## Installation
-
 ```bash
 $ brew tap broothie/smock
 $ brew install smock
 ```
 
 ## Usage
-
 ```bash
 $ smock --help-long
 usage: main [<flags>] <command> [<args> ...]
@@ -27,7 +24,7 @@ Flags:
 Commands:
   help [<command>...]
     Show help.
-
+```
 
   version
     print smock version
