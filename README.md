@@ -2,10 +2,18 @@
 A server mock
 
 ## Installation
+
+### Mac
 ```bash
 $ brew tap broothie/smock
 $ brew install smock
 ```
+
+### Releases
+Releases are available on the [releases page](https://github.com/broothie/smock/releases).
+
+### Source
+You can also build from source of course if you have the Go toolchain installed and feel like doing that.
 
 ## Usage
 ```bash
