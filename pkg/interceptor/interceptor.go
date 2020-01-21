@@ -41,3 +41,7 @@ func (i *Interceptor) ToRecorder() *httptest.ResponseRecorder {
 	recorder.Write(i.body)
 	return recorder
 }
+
+func (i *Interceptor) ToResponse() *http.Response {
+	return i.ToRecorder().Result()
+}

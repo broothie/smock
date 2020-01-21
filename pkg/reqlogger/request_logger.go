@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/http/httptest"
 	"time"
 
 	"github.com/broothie/smock/pkg/interceptor"
 )
+
+func Wrap(next http.Handler, logger *log.Logger) http.Handler {
+	return New(logger)(next)
+}
 
 func New(logger *log.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -19,32 +22,38 @@ func New(logger *log.Logger) func(http.Handler) http.Handler {
 			next.ServeHTTP(interceptor, r)
 			since := time.Since(before)
 
-			logger.Println(FormatFromReqRes(r, interceptor.ToRecorder(), since))
+			logger.Println(FormatFromReqRes(r, interceptor.ToResponse(), since))
 		})
 	}
 }
 
-func Format(method, path, rawQuery string, reqContentLength, code, resContentLength int, since time.Duration) string {
-	return fmt.Sprintf("%s %s%s %dB | %d %s %dB | %v",
+func Format(method, path, rawQuery string, reqContentLength, code, resContentLength int, elapsed time.Duration) string {
+	questionMark := "?"
+	if rawQuery == "" {
+		questionMark = ""
+	}
+
+	return fmt.Sprintf("%s %s%s%s %dB | %d %s %dB | %v",
 		method,
 		path,
+		questionMark,
 		rawQuery,
 		reqContentLength,
 		code,
 		http.StatusText(code),
 		resContentLength,
-		since,
+		elapsed,
 	)
 }
 
-func FormatFromReqRes(req *http.Request, recorder *httptest.ResponseRecorder, since time.Duration) string {
+func FormatFromReqRes(req *http.Request, res *http.Response, elapsed time.Duration) string {
 	return Format(
 		req.Method,
 		req.URL.Path,
 		req.URL.RawQuery,
 		int(req.ContentLength),
-		recorder.Code,
-		recorder.Body.Len(),
-		since,
+		res.StatusCode,
+		int(res.ContentLength),
+		elapsed,
 	)
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/alecthomas/kingpin"
 	"github.com/broothie/smock/pkg/handlers"
+	"github.com/broothie/smock/pkg/id"
 	"github.com/broothie/smock/pkg/reqlogger"
 	"github.com/broothie/smock/pkg/ui"
 )
@@ -17,7 +18,7 @@ var (
 
 	port   = kingpin.Flag("port", "port to run server mock on").Short('p').Default("9090").Int()
 	uiPort = kingpin.Flag("uiport", "port to run ui on").Short('u').Default("9091").Int()
-	skipUI = kingpin.Flag("no-ui", "disable ui").Default("false").Bool()
+	noUI   = kingpin.Flag("no-ui", "disable ui").Default("false").Bool()
 
 	_ = kingpin.Command("version", "print smock version")
 
@@ -37,36 +38,52 @@ var (
 )
 
 func main() {
+	command := kingpin.Parse()
+
 	logger := log.New(os.Stdout, "[smock] ", 0)
+	ui := ui.New(*uiPort, logger)
 
 	var intro string
 	var handler http.Handler
-	switch kingpin.Parse() {
+	switch command {
 	case "mock":
 		intro = fmt.Sprintf("mock server @ http://localhost:%d", *port)
 		handler = handlers.Mock(logger, *mockCode, stringMapToHTTPHeader(*mockHeaders), []byte(*mockBody))
+
 	case "file":
-		intro = fmt.Sprintf("responding with '%s' contents @ http://localhost:%d", *fileName, *port)
+		intro = fmt.Sprintf("responding with contents of '%s' @ http://localhost:%d", *fileName, *port)
 		handler = handlers.File(logger, *fileName)
+
 	case "proxy":
 		intro = fmt.Sprintf("proxying http://localhost:%d → %s", *port, *proxyTarget)
-		handler = handlers.Proxy(*proxyTarget)
+
+		doer := http.DefaultClient.Do
+		if !*noUI {
+			doer = ui.Doer
+		}
+
+		handler = handlers.Proxy(*proxyTarget, doer)
+
 	case "version":
 		fmt.Printf("smock v%s; built %s\n", version, date)
 		os.Exit(0)
+
 	default:
 		log.Println("invalid command")
 		os.Exit(1)
 	}
 
-	if *skipUI {
-		handler = reqlogger.New(logger)(handler)
+	if *noUI {
+		handler = reqlogger.Wrap(handler, logger)
 	} else {
-		ui := ui.New(*uiPort, logger)
-		handler = ui.Middleware(handler)
+		if command != "proxy" {
+			handler = ui.Middleware(handler)
+		}
+
 		ui.Start()
 	}
 
+	handler = id.Middleware(handler)
 	logger.Println(intro)
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", *port), handler); err != nil {
 		logger.Println(err)

@@ -3,40 +3,14 @@ package handlers
 import (
 	"bytes"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
 )
 
-func File(logger *log.Logger, filename string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		contents, err := ioutil.ReadFile(filename)
-		if err != nil {
-			logger.Println(err)
-			return
-		}
+type HTTPDoer func(*http.Request) (*http.Response, error)
 
-		Mock(logger, http.StatusOK, http.Header{}, contents).ServeHTTP(w, r)
-	}
-}
-
-func Mock(logger *log.Logger, statusCode int, headers http.Header, body []byte) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		for key, values := range headers {
-			for _, value := range values {
-				w.Header().Add(key, value)
-			}
-		}
-
-		w.WriteHeader(statusCode)
-		if _, err := w.Write(body); err != nil {
-			logger.Println(err)
-		}
-	}
-}
-
-func Proxy(target *url.URL) http.Handler {
+func Proxy(target *url.URL, doer HTTPDoer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		targetReq, err := copyRequest(r)
 		if err != nil {
@@ -44,10 +18,17 @@ func Proxy(target *url.URL) http.Handler {
 			return
 		}
 
+		resURL, err := url.Parse(target.String())
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		targetReq.Host = target.Host
-		targetReq.URL, _ = url.Parse(target.String())
+		targetReq.URL = resURL
+		targetReq.URL.RawQuery = r.URL.RawQuery
 		targetReq.URL.Path = path.Join(target.Path, r.URL.Path)
-		targetRes, err := http.DefaultClient.Do(targetReq)
+		targetRes, err := doer(targetReq.WithContext(r.Context()))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -65,8 +46,8 @@ func copyRequest(r *http.Request) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+
 	return &http.Request{
 		Method:           r.Method,
 		URL:              r.URL,

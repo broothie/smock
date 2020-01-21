@@ -6,7 +6,6 @@ import (
 	"net/http/httputil"
 	"time"
 
-	"github.com/broothie/smock/pkg/interceptor"
 	"github.com/broothie/smock/pkg/reqlogger"
 )
 
@@ -26,18 +25,17 @@ type Request struct {
 	Query    string `json:"query"`
 	Protocol string `json:"protocol"`
 	Raw      string `json:"raw"`
+	Body     []byte `json:"-"`
 }
 
 type Response struct {
 	Code     int    `json:"code"`
 	Protocol string `json:"protocol"`
 	Raw      string `json:"raw"`
+	Body     []byte `json:"-"`
 }
 
-func NewEntry(id string, start, end time.Time, req *http.Request, interceptor *interceptor.Interceptor) (Entry, error) {
-	recorder := interceptor.ToRecorder()
-	res := recorder.Result()
-
+func NewEntry(id string, req *http.Request, res *http.Response, start, end time.Time) (Entry, error) {
 	rawReq, err := httputil.DumpRequest(req, true)
 	if err != nil {
 		return Entry{}, err
@@ -48,7 +46,7 @@ func NewEntry(id string, start, end time.Time, req *http.Request, interceptor *i
 		return Entry{}, err
 	}
 
-	line := fmt.Sprintf("%s | %s", id, reqlogger.FormatFromReqRes(req, recorder, end.Sub(start)))
+	line := fmt.Sprintf("%s | %s", id, reqlogger.FormatFromReqRes(req, res, end.Sub(start)))
 	return Entry{
 		ID:      id,
 		Line:    line,
@@ -58,12 +56,12 @@ func NewEntry(id string, start, end time.Time, req *http.Request, interceptor *i
 		Request: Request{
 			Method:   req.Method,
 			Path:     req.URL.Path,
-			Query:    req.URL.RawQuery,
+			Query:    req.URL.Query().Encode(),
 			Protocol: req.Proto,
 			Raw:      string(rawReq),
 		},
 		Response: Response{
-			Code:     recorder.Code,
+			Code:     res.StatusCode,
 			Protocol: res.Proto,
 			Raw:      string(rawRes),
 		},
