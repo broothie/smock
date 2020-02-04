@@ -43,5 +43,8 @@ func (i *Interceptor) ToRecorder() *httptest.ResponseRecorder {
 }
 
 func (i *Interceptor) ToResponse() *http.Response {
-	return i.ToRecorder().Result()
+	recorder := i.ToRecorder()
+	res := recorder.Result()
+	res.ContentLength = int64(recorder.Body.Len())
+	return res
 }
