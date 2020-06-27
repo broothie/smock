@@ -1,0 +1,44 @@
+
+spud 'publish' do |version, message|
+    invoke 'clean'
+    invoke 'git', message
+    invoke 'tag', version
+    invoke 'tag.push', version
+    invoke 'release'
+end
+
+spud 'git' do |message|
+    sh 'git add -A'
+    sh %(git commit -m "#{message}")
+    sh 'git push'
+end
+
+spud 'tag.latest' do
+    puts shhh('git tag').split("\n").sort_by(&:length).chunk(&:length).map(&:last).map(&:sort).flatten
+end
+
+spud 'tag' do |version|
+    sh %(git tag -a #{version})
+end
+
+spud 'tag.push' do |version|
+    sh "git push origin #{version}"
+end
+
+spud 'release' do
+    sh 'source .env && goreleaser --rm-dist'
+end
+
+spud 'gin' do |*args|
+    if args.empty?
+        sh 'gin -i -d cmd/smock'
+    else
+        sh "gin -i -d cmd/smock -- #{args.join(' ')}"
+    end
+end
+
+spud 'clean' do
+    sh? 'rm -rf main'
+    sh? 'rm -rf gin-bin'
+    sh? 'rm -rf dist'
+end
