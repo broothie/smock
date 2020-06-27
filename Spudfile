@@ -2,7 +2,7 @@
 spud 'publish' do |version, message|
     invoke 'clean'
     invoke 'git', message
-    invoke 'tag', version
+    invoke 'tag', version, message
     invoke 'tag.push', version
     invoke 'release'
 end
@@ -17,8 +17,8 @@ spud 'tag.latest' do
     puts shhh('git tag').split("\n").sort_by(&:length).chunk(&:length).map(&:last).map(&:sort).flatten
 end
 
-spud 'tag' do |version|
-    sh %(git tag -a #{version})
+spud 'tag' do |version, message|
+    sh %(git tag -a #{version} -m "#{message}")
 end
 
 spud 'tag.push' do |version|
