@@ -14,7 +14,7 @@ import (
 
 func (ui *UI) Serve() {
 	ui.IsServing = true
-	ui.Logger.Printf("serving ui server @ %d\n", ui.Port)
+	ui.Logger.Printf("serving ui @ http://localhost:%d\n", ui.Port)
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", ui.Port), ui.Handler()); err != nil {
 		ui.Logger.Println(err)
 		os.Exit(1)
@@ -104,8 +104,6 @@ func (ui *UI) ws(w http.ResponseWriter, r *http.Request) {
 
 func (ui *UI) alertConnections() {
 	for _, connection := range ui.Conns {
-		if err := connection.WriteMessage(websocket.TextMessage, []byte{}); err != nil {
-			fmt.Println("failed to ping")
-		}
+		connection.WriteMessage(websocket.TextMessage, []byte{})
 	}
 }
