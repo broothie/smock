@@ -26,7 +26,7 @@ spud 'tag.push' do |version|
 end
 
 spud 'release' do
-    sh 'srcenv && goreleaser --rm-dist'
+    sh 'goreleaser --rm-dist'
 end
 
 spud 'gin' do |*args|
