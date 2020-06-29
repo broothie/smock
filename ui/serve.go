@@ -14,7 +14,7 @@ import (
 
 func (ui *UI) Serve() {
 	ui.IsServing = true
-	ui.Logger.Printf("serving ui @ http://localhost:%d\n", ui.Port)
+	ui.Logger.Printf("ui server @ http://localhost:%d\n", ui.Port)
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", ui.Port), ui.Handler()); err != nil {
 		ui.Logger.Println(err)
 		os.Exit(1)

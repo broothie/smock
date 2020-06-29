@@ -1,0 +1,10 @@
+
+show user:
+  request:
+    methods: [get]
+    path: /api/v1/users/(.*)
+  response:
+    code: 201
+    headers:
+      whatever: yeah
+    body: Hello, world!

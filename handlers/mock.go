@@ -19,3 +19,16 @@ func Mock(logger *log.Logger, statusCode int, headers http.Header, body []byte) 
 		}
 	}
 }
+
+func File(statusCode int, headers http.Header, filename string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		for key, values := range headers {
+			for _, value := range values {
+				w.Header().Add(key, value)
+			}
+		}
+
+		w.WriteHeader(statusCode)
+		http.ServeFile(w, r, filename)
+	}
+}

@@ -101,3 +101,10 @@ Commands:
   proxy <url>
     reverse proxy to target url
 ```
+
+### TODO
+
+- [ ] Stubs
+- [ ] Clean up errors
+- [ ] Retrofit JS
+- [ ] Show proxied request info in UI
