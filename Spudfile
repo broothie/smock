@@ -26,6 +26,7 @@ spud 'tag.push' do |version|
 end
 
 spud 'release' do
+    raise 'missing GITHUB_TOKEN' unless ENV['GITHUB_TOKEN']
     sh 'goreleaser --rm-dist'
 end
 
